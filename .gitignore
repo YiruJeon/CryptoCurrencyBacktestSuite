@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 *.csv
+*.csv#
 *.bak
 *_output_*.ipynb
 
