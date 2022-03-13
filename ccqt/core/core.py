@@ -26,7 +26,7 @@ class core:
     def loginfo(self, msg):
         self.m_logger.info(msg)
 
-    def logwarn(self, msg)
+    def logwarn(self, msg):
         self.m_logger.warning(msg)
 
     def logerror(self, msg):
