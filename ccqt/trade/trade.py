@@ -40,3 +40,5 @@ class trade(core):
         self.m_logger.info("current Upbit account has enough KRW than budget_krw")
         # upbit 호출하면서 key validity 체크 완료
 
+    def check_loop(self):
+        return True

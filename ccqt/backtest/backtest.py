@@ -3,15 +3,19 @@ from ccqt.core.core import core
 import pandas as pd
 import datetime
 import tqdm
+import logging
 
 class backtest(core):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self, name, level=logging.WARNING):
+        super().__init__(name, level)
+        self.m_time_start = None
         self.m_curtime = datetime.datetime(2000, 1, 1, tzinfo=datetime.timezone.utc)
         self.m_ticker2ohlcv_min = {}
         self.m_ticker2ohlcv_hour = {}
         self.m_timeframe = 'day'
         self.m_balance = {}
+        self.m_last_progress_time_dayoffset = None
+        self.m_progress_status = None
 
         df_columns = [
             'asset_as_krw',
@@ -65,10 +69,12 @@ class backtest(core):
             self.m_balance[ticker] = 0
         self.m_balance[ticker] -= amount
 
-    def get_current_ohlcv_hour(self, ticker):
+    def get_current_ohlcv_hour(self, ticker, hours=300):
         df = self.m_ticker2ohlcv_hour[ticker]
         # 현재 시간을 시작하는 데이터도 포함하도록 하자
-        df_p = df[ df.index <= self.m_curtime]
+        left_time = self.m_curtime - datetime.timedelta(hours=hours)
+        # numpy 객체를 다루는 중이므로 조건식을 약간 복잡하게 써야함
+        df_p = df[(left_time < df.index) & (df.index <= self.m_curtime)]
         return df_p
 
     def get_current_asset_as_krw(self):
@@ -101,7 +107,6 @@ class backtest(core):
 
     def standby_until(self, target):
         self.m_curtime = target
-        self.logerror(f'standby_until, {target=}')
 
     def order_buy_market_wo_fee(self, ticker, krw_wo_fee):
         '''
@@ -159,11 +164,32 @@ class backtest(core):
         times = []
         for df in self.m_ticker2ohlcv_min.values():
             times += [df.index[0].to_pydatetime()]
+        self.m_time_start = min(times)
         self.m_curtime = min(times)
         self.loginfo(f'{self.m_curtime=}')
 
+    def infer_lasttime_from_ohlcv(self):
+        times = []
+        for df in self.m_ticker2ohlcv_min.values():
+            times += [df.index[-1].to_pydatetime()]
+        self.m_lasttime = max(times)
+        self.loginfo(f'{self.m_lasttime=}')
+
+    def prepare_progress_bar(self):
+        self.m_last_progress_time_dayoffset = 0
+        td = self.m_lasttime - self.m_curtime
+        self.m_progress_status = tqdm.tqdm(total=td.days)
+
+
     def set_curtime(self, curtime):
         self.m_curtime = curtime
+
+    def check_loop(self):
+        td = self.m_lasttime - self.m_curtime
+        self.m_progress_status.update(td.days - self.m_last_progress_time_dayoffset)
+        self.m_last_progress_time_dayoffset = td.days
+
+        return self.m_curtime <= self.m_lasttime
 
 
 

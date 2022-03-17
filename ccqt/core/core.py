@@ -95,3 +95,6 @@ class core:
 
     def standby_until(self):
         pass
+
+    def check_loop(self) -> bool:
+        pass
